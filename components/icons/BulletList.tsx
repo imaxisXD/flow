@@ -1,6 +1,6 @@
 import { BaseIcon } from "./BaseIcon";
 
-export const BulletList = ({ size = 4 }: { size?: number }) => {
+export const BulletList = ({ size = "size-4" }: { size?: string }) => {
 	return (
 		<BaseIcon size={size}>
 			<path

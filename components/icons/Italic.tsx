@@ -1,6 +1,6 @@
 import { BaseIcon } from "./BaseIcon";
 
-export const Italic = ({ size = 4 }: { size?: number }) => {
+export const Italic = ({ size = "size-4" }: { size?: string }) => {
 	return (
 		<BaseIcon size={size}>
 			<path

@@ -1,6 +1,7 @@
 export { BaseIcon } from "./BaseIcon";
 export { Bold } from "./Bold";
 export { BulletList } from "./BulletList";
+export { Cpu } from "./Cpu";
 export { Heading, type HeadingVariant } from "./Heading";
 export { Italic } from "./Italic";
 export { Link } from "./Link";

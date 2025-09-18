@@ -1,7 +1,7 @@
 "use client";
 
 import { marked } from "marked";
-import { baseKeymap, toggleMark } from "prosemirror-commands";
+import { baseKeymap, setBlockType, toggleMark } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import { gapCursor } from "prosemirror-gapcursor";
 import { history, redo, undo } from "prosemirror-history";
@@ -21,12 +21,17 @@ import {
 	Schema,
 } from "prosemirror-model";
 import { schema as basicSchema } from "prosemirror-schema-basic";
-import { addListNodes } from "prosemirror-schema-list";
+import {
+	addListNodes,
+	liftListItem,
+	wrapInList,
+} from "prosemirror-schema-list";
 import { EditorState, Plugin } from "prosemirror-state";
 import { Decoration, DecorationSet, EditorView } from "prosemirror-view";
 import { useEffect, useRef, useState } from "react";
-import { Sparkle } from "@/component/icons/Sparkle";
-import Toolbar from "@/component/Toolbar";
+import { Cpu } from "@/components/icons";
+import { Sparkle } from "@/components/icons/Sparkle";
+import Toolbar from "@/components/Toolbar";
 
 function buildSchema(): Schema {
 	const underline: MarkSpec = {
@@ -91,6 +96,18 @@ function createEditor(
 ): { view: EditorView } {
 	const schema = buildSchema();
 
+	function isNodeActiveInSelection(
+		state: EditorState,
+		nodeTypeNames: string[],
+	): boolean {
+		const { $from } = state.selection;
+		for (let depth = $from.depth; depth > 0; depth--) {
+			const node = $from.node(depth);
+			if (nodeTypeNames.includes(node.type.name)) return true;
+		}
+		return false;
+	}
+
 	const state = EditorState.create({
 		schema,
 		doc: schema.topNodeType.createAndFill() || undefined,
@@ -117,6 +134,124 @@ function createEditor(
 				"Mod-b": toggleMark(schema.marks.strong),
 				"Mod-i": toggleMark(schema.marks.em),
 				"Mod-u": toggleMark(schema.marks.underline),
+				// Headings
+				"Mod-Alt-1": (state, dispatch, view) => {
+					if (!view) return false;
+					const { $from } = state.selection;
+					const parent = $from.parent;
+					const handled =
+						parent.type === schema.nodes.heading && parent.attrs.level === 1
+							? setBlockType(schema.nodes.paragraph)(state, dispatch, view)
+							: setBlockType(schema.nodes.heading, { level: 1 })(
+									state,
+									dispatch,
+									view,
+								);
+					if (handled) view.focus();
+					return handled;
+				},
+				"Mod-Alt-2": (state, dispatch, view) => {
+					if (!view) return false;
+					const { $from } = state.selection;
+					const parent = $from.parent;
+					const handled =
+						parent.type === schema.nodes.heading && parent.attrs.level === 2
+							? setBlockType(schema.nodes.paragraph)(state, dispatch, view)
+							: setBlockType(schema.nodes.heading, { level: 2 })(
+									state,
+									dispatch,
+									view,
+								);
+					if (handled) view.focus();
+					return handled;
+				},
+				// Link prompt / toggle
+				"Mod-k": (state, dispatch, view) => {
+					if (!view) return false;
+					const type = state.schema.marks.link;
+					const { from, to, empty } = state.selection;
+					if (!empty && state.doc.rangeHasMark(from, to, type)) {
+						if (dispatch) dispatch(state.tr.removeMark(from, to, type));
+						view.focus();
+						return true;
+					}
+					if (typeof window !== "undefined") {
+						window.dispatchEvent(new CustomEvent("editor:link:open"));
+					}
+					return true;
+				},
+				// Bullet list toggle
+				"Mod-Shift-8": (state, dispatch, view) => {
+					if (!view) return false;
+					const inCurrent = isNodeActiveInSelection(state, ["bullet_list"]);
+					const inOther = isNodeActiveInSelection(state, ["ordered_list"]);
+					if (inCurrent) {
+						const handled = liftListItem(schema.nodes.list_item)(
+							state,
+							dispatch,
+							view,
+						);
+						if (handled) view.focus();
+						return handled;
+					}
+					if (inOther) {
+						const lifted = liftListItem(schema.nodes.list_item)(
+							state,
+							dispatch,
+							view,
+						);
+						const handled = wrapInList(schema.nodes.bullet_list)(
+							view.state,
+							view.dispatch,
+							view,
+						);
+						if (lifted || handled) view.focus();
+						return lifted || handled;
+					}
+					const handled = wrapInList(schema.nodes.bullet_list)(
+						state,
+						dispatch,
+						view,
+					);
+					if (handled) view.focus();
+					return handled;
+				},
+				// Ordered list toggle
+				"Mod-Shift-7": (state, dispatch, view) => {
+					if (!view) return false;
+					const inCurrent = isNodeActiveInSelection(state, ["ordered_list"]);
+					const inOther = isNodeActiveInSelection(state, ["bullet_list"]);
+					if (inCurrent) {
+						const handled = liftListItem(schema.nodes.list_item)(
+							state,
+							dispatch,
+							view,
+						);
+						if (handled) view.focus();
+						return handled;
+					}
+					if (inOther) {
+						const lifted = liftListItem(schema.nodes.list_item)(
+							state,
+							dispatch,
+							view,
+						);
+						const handled = wrapInList(schema.nodes.ordered_list)(
+							view.state,
+							view.dispatch,
+							view,
+						);
+						if (lifted || handled) view.focus();
+						return lifted || handled;
+					}
+					const handled = wrapInList(schema.nodes.ordered_list)(
+						state,
+						dispatch,
+						view,
+					);
+					if (handled) view.focus();
+					return handled;
+				},
 			}),
 			keymap(baseKeymap),
 			dropCursor(),
@@ -186,9 +321,9 @@ export default function Home() {
 	}, []);
 
 	return (
-		<div className="min-h-screen grid grid-cols-[1fr_360px] bg-white text-[#111]">
+		<div className="min-h-screen w-full flex bg-white">
 			{/* Left editor area */}
-			<div className="flex flex-col">
+			<div className="flex flex-col w-3/4">
 				{/* Top bar */}
 				<div className="h-14 flex items-center justify-between px-4">
 					<div className="text-md text-gray-700 font-bold">Demo document</div>
@@ -220,16 +355,11 @@ export default function Home() {
 			</div>
 
 			{/* Right panel */}
-			<aside className="border-l border-black/10 bg-[#fafafa] flex flex-col">
-				<div className="h-14 border-b border-black/10 px-4 flex items-center gap-2">
-					<div className="h-9 px-3 rounded-md bg-pink-100 text-pink-700 border border-pink-200 text-xs font-medium grid place-items-center">
-						Review suggestions
-					</div>
-					<div className="h-9 px-3 rounded-md bg-white text-black/60 border border-black/10 text-xs font-medium grid place-items-center">
-						Write with generative AI
-					</div>
-					<div className="h-9 px-3 rounded-md bg-white text-black/60 border border-black/10 text-xs font-medium grid place-items-center text-center">
-						Check for AI text & plagiarism
+			<aside className="border-l border-black/10 bg-[#fafafa] flex flex-col w-1/4">
+				<div className="h-14 border-b border-black/10 px-4 flex items-center justify-center">
+					<div className="h-9 px-3 justify-between items-center gap-2 rounded-md bg-pink-100 text-pink-700 border border-pink-200 text-xs font-medium flex">
+						<Cpu />
+						Agent
 					</div>
 				</div>
 
