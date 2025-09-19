@@ -3,7 +3,7 @@
 import type { EditorView } from "prosemirror-view";
 import { useRef, useState } from "react";
 import { Editor } from "@/components/Editor";
-import { Cpu } from "@/components/icons";
+import { Cpu, Fire } from "@/components/icons";
 import { Sparkle } from "@/components/icons/Sparkle";
 import LayeredButton from "@/components/LayeredButton";
 import Toolbar from "@/components/Toolbar";
@@ -31,9 +31,20 @@ export default function Home() {
 			{/* Left editor area */}
 			<div className="flex flex-col w-3/4">
 				{/* Top bar */}
-				<div className="h-14 flex items-center justify-between px-4">
-					<div className="text-lg text-pink-700 font-bold">Flow Doc</div>
-					<div className="flex items-center">
+				<div className="h-14 flex items-center justify-between px-24 mt-2 w-full">
+					<div className="flex items-center justify-center gap-6">
+						<h1 className="text-lg text-pink-700 font-bold w-fit flex justify-center items-center gap-0.5">
+							<Fire size="size-6" />
+							Flow Doc
+						</h1>
+						<span className="text-xs border border-emerald-400 text-green-500 rounded-full px-3 py-0.5">
+							Saved
+						</span>
+						<span className="text-xs border border-amber-400 text-amber-600 rounded-full px-3 py-0.5">
+							Saving
+						</span>
+					</div>
+					<div className="flex items-center w-fit">
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<LayeredButton
