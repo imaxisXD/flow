@@ -1,8 +1,12 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { marked } from "marked";
-import { DOMParser as PMDOMParser } from "prosemirror-model";
+import {
+	defaultMarkdownParser,
+	defaultMarkdownSerializer,
+	MarkdownParser,
+} from "prosemirror-markdown";
+import { Slice } from "prosemirror-model";
 import type { EditorView } from "prosemirror-view";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AiButton } from "@/components/AiButton";
@@ -78,7 +82,7 @@ export default function Home() {
 		try {
 			// Get the current state and create a transaction
 			const { state } = view;
-			const { doc, schema } = state;
+			const { doc } = state;
 
 			// On first content insertion, ensure a single-space separator only if needed (no blank line)
 			if (!separatorAddedRef.current && delta.length > 0) {
@@ -94,8 +98,6 @@ export default function Home() {
 			}
 
 			// Get updated state after potential separator insertion
-			const currentState = view.state;
-			const endPos = currentState.doc.content.size;
 
 			// Check if we need to add a paragraph at the end
 			// if (
@@ -144,21 +146,21 @@ export default function Home() {
 			const end = view.state.doc.content.size;
 			const markdown = sanitizeFullMarkdown(streamedMarkdownRef.current);
 
-			// Replace the appended plain text with parsed Markdown nodes
 			try {
-				const html = (marked.parse(markdown) as string) || "";
-				const wrap = document.createElement("div");
-				wrap.innerHTML = html;
-				const slice = PMDOMParser.fromSchema(view.state.schema).parseSlice(
-					wrap,
+				const mdParser = new MarkdownParser(
+					view.state.schema,
+					defaultMarkdownParser.tokenizer,
+					defaultMarkdownParser.tokens,
 				);
+				const mdDoc = mdParser.parse(markdown);
+				const slice = new Slice(mdDoc.content, 0, 0);
 				const tr = view.state.tr
 					.replaceRange(start, end, slice)
 					.scrollIntoView();
 				view.dispatch(tr);
 				view.focus();
 			} catch (_err) {
-				console.log("[FINALIZE] Markdown parsing failed, keeping plain text");
+				console.log("Markdown parsing failed, keeping plain text");
 			}
 		}
 
@@ -186,17 +188,14 @@ export default function Home() {
 		const view = viewRef.current;
 		if (!view) return;
 
-		// Get current document text
-		const editorText = view.state.doc.textBetween(
-			0,
-			view.state.doc.content.size,
-		);
+		// Get current document markdown
+		const editorMarkdown = defaultMarkdownSerializer.serialize(view.state.doc);
 
 		// Record the current position before any changes
 		const startPos = view.state.doc.content.size;
 		appendStartPosRef.current = startPos;
 
-		const prompt = `Continue the writing of this content: ${editorText}.
+		const prompt = `Continue the writing of this content: ${editorMarkdown}.
 		 Write in the same tone and style, for example the above style is using markdown format, continue in the same format. 
 		 Do not add any preface or labels. 
 		 Start immediately with next line.

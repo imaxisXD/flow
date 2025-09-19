@@ -1,4 +1,3 @@
-import { marked } from "marked";
 import { baseKeymap, setBlockType, toggleMark } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import { gapCursor } from "prosemirror-gapcursor";
@@ -12,11 +11,12 @@ import {
 	wrappingInputRule,
 } from "prosemirror-inputrules";
 import { keymap } from "prosemirror-keymap";
+import { defaultMarkdownParser, MarkdownParser } from "prosemirror-markdown";
 import {
 	type DOMOutputSpec,
 	type MarkSpec,
-	DOMParser as PMDOMParser,
 	Schema,
+	Slice,
 } from "prosemirror-model";
 import { schema as basicSchema } from "prosemirror-schema-basic";
 import {
@@ -277,12 +277,13 @@ function createEditor(
 						const html = event.clipboardData?.getData("text/html");
 						if (!text || (html && html.length > 0)) return false;
 						try {
-							const htmlStr = marked.parse(text) as string;
-							const wrap = document.createElement("div");
-							wrap.innerHTML = htmlStr;
-							const slice = PMDOMParser.fromSchema(
+							const mdParser = new MarkdownParser(
 								view.state.schema,
-							).parseSlice(wrap);
+								defaultMarkdownParser.tokenizer,
+								defaultMarkdownParser.tokens,
+							);
+							const mdDoc = mdParser.parse(text);
+							const slice = new Slice(mdDoc.content, 0, 0);
 							const tr = view.state.tr.replaceSelection(slice).scrollIntoView();
 							view.dispatch(tr);
 							return true;
