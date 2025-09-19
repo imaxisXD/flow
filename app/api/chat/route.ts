@@ -2,8 +2,7 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 const openrouter = createOpenRouter({
-	apiKey:
-		"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",
+	apiKey: process.env.OPEN_ROUTER_KEY,
 });
 
 export async function POST(req: Request) {

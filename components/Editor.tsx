@@ -304,7 +304,6 @@ function createEditor(
 			onStateUpdate(newState);
 		},
 	});
-	// Initial notify
 	onStateUpdate(view.state);
 	return { view };
 }
