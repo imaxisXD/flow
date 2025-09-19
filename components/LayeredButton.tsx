@@ -36,7 +36,7 @@ const intentStyles: Record<
 	pink: {
 		base: "bg-pink-500 text-white",
 		border: "border-pink-700",
-		shadow: "shadow-[0_3px_0_#9d174d]",
+		shadow: "shadow-[0_4px_0_#9d174d]",
 		hover: "hover:bg-pink-500/90",
 		ring: "focus-visible:ring-pink-600",
 	},

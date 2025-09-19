@@ -1,11 +1,13 @@
 "use client";
 
+import { FocusScope } from "@radix-ui/react-focus-scope";
 import { setBlockType, toggleMark } from "prosemirror-commands";
 import { liftListItem, wrapInList } from "prosemirror-schema-list";
 import type { EditorState } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import type { RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { Bold } from "@/components/icons/Bold";
 import { BulletList } from "@/components/icons/BulletList";
 import { Heading } from "@/components/icons/Heading";
@@ -67,6 +69,37 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 			return () => clearTimeout(id);
 		}
 	}, [isLinkMenuOpen]);
+
+	// Global Enter/Escape shortcuts while link menu is open
+	useHotkeys(
+		"enter",
+		(e) => {
+			if (!isLinkMenuOpen) return;
+			const activeTag = document.activeElement?.tagName?.toLowerCase();
+			// Avoid double-trigger when focusing a button
+			if (activeTag === "button") return;
+			e.preventDefault();
+			e.stopPropagation();
+			applyLink(hrefValue);
+			setIsLinkMenuOpen(false);
+			viewRef.current?.focus();
+		},
+		{ enabled: isLinkMenuOpen, enableOnFormTags: true },
+		[isLinkMenuOpen, hrefValue],
+	);
+
+	useHotkeys(
+		"esc",
+		(e) => {
+			if (!isLinkMenuOpen) return;
+			e.preventDefault();
+			e.stopPropagation();
+			setIsLinkMenuOpen(false);
+			viewRef.current?.focus();
+		},
+		{ enabled: isLinkMenuOpen, enableOnFormTags: true },
+		[isLinkMenuOpen],
+	);
 
 	function toggleHeading(level: 1 | 2) {
 		const view = viewRef.current;
@@ -263,47 +296,46 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 					</div>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent className="w-64 p-2" sideOffset={6}>
-					<div className="flex flex-col gap-2">
-						<input
-							className="w-full rounded border border-black/20 px-2 py-1 text-xs outline-none"
-							placeholder="https://example.com"
-							ref={hrefInputRef}
-							value={hrefValue}
-							onChange={(e) => setHrefValue(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter") {
-									applyLink(hrefValue);
-									setIsLinkMenuOpen(false);
-								}
-								if (e.key === "Escape") {
-									setIsLinkMenuOpen(false);
-								}
-							}}
-						/>
-						<div className="flex items-center gap-2">
-							<button
-								type="button"
-								className="flex-1 rounded bg-black text-white text-xs px-2 py-1"
-								onClick={() => {
-									applyLink(hrefValue);
-									setIsLinkMenuOpen(false);
-								}}
-							>
-								Apply
-							</button>
-							<DropdownMenuSeparator />
-							<button
-								type="button"
-								className="flex-1 rounded border border-black/20 text-xs px-2 py-1"
-								onClick={() => {
-									removeLink();
-									setIsLinkMenuOpen(false);
-								}}
-							>
-								Remove
-							</button>
+					<FocusScope loop trapped>
+						<div className="flex flex-col gap-2">
+							<input
+								className="w-full rounded border border-black/20 px-2 py-1 text-xs outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
+								placeholder="https://example.com"
+								ref={hrefInputRef}
+								value={hrefValue}
+								onChange={(e) => setHrefValue(e.target.value)}
+							/>
+							<div className="flex items-center gap-2">
+								<button
+									type="button"
+									className="flex w-1/2 justify-center gap-2 items-center rounded bg-black text-white text-xs px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
+									onClick={() => {
+										applyLink(hrefValue);
+										setIsLinkMenuOpen(false);
+									}}
+								>
+									<span>Apply</span>
+									<kbd className="rounded border border-white/20 bg-white/10 px-1.5 py-0.5 text-white text-xs leading-none">
+										⏎
+									</kbd>
+								</button>
+
+								<button
+									type="button"
+									className="flex w-1/2 justify-center gap-2 items-center rounded bg-gradient-to-t from-gray-100 to to-white text-black border text-xs px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
+									onClick={() => {
+										removeLink();
+										setIsLinkMenuOpen(false);
+									}}
+								>
+									<span>Remove</span>
+									<kbd className="rounded border bg-white/10 px-1.5 py-0.5 text-xs leading-none">
+										esc
+									</kbd>
+								</button>
+							</div>
 						</div>
-					</div>
+					</FocusScope>
 				</DropdownMenuContent>
 			</DropdownMenu>
 			<ToolbarButton

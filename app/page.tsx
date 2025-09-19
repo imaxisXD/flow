@@ -2,16 +2,10 @@
 
 import type { EditorView } from "prosemirror-view";
 import { useRef, useState } from "react";
+import { AiButton } from "@/components/AiButton";
 import { Editor } from "@/components/Editor";
 import { Cpu, Fire } from "@/components/icons";
-import { Sparkle } from "@/components/icons/Sparkle";
-import LayeredButton from "@/components/LayeredButton";
 import Toolbar from "@/components/Toolbar";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 export default function Home() {
 	const viewRef = useRef<EditorView | null>(null);
@@ -31,7 +25,7 @@ export default function Home() {
 			{/* Left editor area */}
 			<div className="flex flex-col w-3/4">
 				{/* Top bar */}
-				<div className="h-14 flex items-center justify-between px-24 mt-2 w-full">
+				<div className="h-14 flex items-center justify-between px-24 w-full">
 					<div className="flex items-center justify-center gap-6">
 						<h1 className="text-lg text-pink-700 font-bold w-fit flex justify-center items-center gap-0.5">
 							<Fire size="size-6" />
@@ -45,20 +39,7 @@ export default function Home() {
 						</span>
 					</div>
 					<div className="flex items-center w-fit">
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<LayeredButton
-									intent="pink"
-									size="md"
-									type="button"
-									className="gap-1"
-								>
-									<Sparkle size="size-5" />
-									<span>Complete Writing</span>
-								</LayeredButton>
-							</TooltipTrigger>
-							<TooltipContent>Use AI to complete the writing</TooltipContent>
-						</Tooltip>
+						<AiButton />
 					</div>
 				</div>
 
