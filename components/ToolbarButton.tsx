@@ -7,6 +7,7 @@ interface ToolbarButtonProps {
 	className?: string;
 	tooltip: string;
 	shortcut?: string | string[];
+	active?: boolean;
 }
 
 export const ToolbarButton = ({
@@ -15,6 +16,7 @@ export const ToolbarButton = ({
 	className = "",
 	tooltip,
 	shortcut,
+	active = false,
 }: ToolbarButtonProps) => {
 	function toSymbol(key: string) {
 		const normalized = key.trim().toLowerCase();
@@ -90,7 +92,11 @@ export const ToolbarButton = ({
 						e.preventDefault();
 						onClick();
 					}}
-					className={`size-8 px-2 rounded border border-black/20 text-xs bg-gradient-to-bl from-white to-gray-50 ${className}`}
+					className={`size-8 px-2 rounded border text-xs bg-gradient-to-bl ${
+						active
+							? "border-pink-300 from-pink-50 to-pink-100 text-pink-700"
+							: "border-black/20 from-white to-gray-50"
+					} ${className}`}
 				>
 					{children}
 				</button>

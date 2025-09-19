@@ -21,11 +21,23 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface ToolbarProps {
-	viewRef: RefObject<EditorView | null>;
+interface ActiveState {
+	strong: boolean;
+	em: boolean;
+	underline: boolean;
+	link: boolean;
+	heading1: boolean;
+	heading2: boolean;
+	bulletList: boolean;
+	orderedList: boolean;
 }
 
-export default function Toolbar({ viewRef }: ToolbarProps) {
+interface ToolbarProps {
+	viewRef: RefObject<EditorView | null>;
+	active?: ActiveState;
+}
+
+export default function Toolbar({ viewRef, active }: ToolbarProps) {
 	const [isLinkMenuOpen, setIsLinkMenuOpen] = useState(false);
 	const [hrefValue, setHrefValue] = useState("");
 	const hrefInputRef = useRef<HTMLInputElement | null>(null);
@@ -190,6 +202,7 @@ export default function Toolbar({ viewRef }: ToolbarProps) {
 				onClick={toggleBold}
 				tooltip="Bold"
 				shortcut={["cmd", "b"]}
+				active={!!active?.strong}
 			>
 				<Bold />
 			</ToolbarButton>
@@ -197,6 +210,7 @@ export default function Toolbar({ viewRef }: ToolbarProps) {
 				onClick={toggleItalic}
 				tooltip="Italic"
 				shortcut={["cmd", "i"]}
+				active={!!active?.em}
 			>
 				<Italic />
 			</ToolbarButton>
@@ -204,6 +218,7 @@ export default function Toolbar({ viewRef }: ToolbarProps) {
 				onClick={toggleUnderline}
 				tooltip="Underline"
 				shortcut={["cmd", "u"]}
+				active={!!active?.underline}
 			>
 				<Underline />
 			</ToolbarButton>
@@ -212,6 +227,7 @@ export default function Toolbar({ viewRef }: ToolbarProps) {
 				onClick={() => toggleHeading(1)}
 				tooltip="Heading 1"
 				shortcut={["cmd", "opt", "1"]}
+				active={!!active?.heading1}
 			>
 				<Heading variant="h1" />
 			</ToolbarButton>
@@ -219,6 +235,7 @@ export default function Toolbar({ viewRef }: ToolbarProps) {
 				onClick={() => toggleHeading(2)}
 				tooltip="Heading 2"
 				shortcut={["cmd", "opt", "2"]}
+				active={!!active?.heading2}
 			>
 				<Heading variant="h2" />
 			</ToolbarButton>
@@ -239,6 +256,7 @@ export default function Toolbar({ viewRef }: ToolbarProps) {
 							onClick={onLinkButtonClick}
 							tooltip="Link"
 							shortcut={["cmd", "k"]}
+							active={!!active?.link}
 						>
 							<Link />
 						</ToolbarButton>
@@ -292,6 +310,7 @@ export default function Toolbar({ viewRef }: ToolbarProps) {
 				onClick={toggleBulletList}
 				tooltip="Bullet List"
 				shortcut={["cmd", "shift", "8"]}
+				active={!!active?.bulletList}
 			>
 				<BulletList />
 			</ToolbarButton>
@@ -299,6 +318,7 @@ export default function Toolbar({ viewRef }: ToolbarProps) {
 				onClick={toggleOrderedList}
 				tooltip="Ordered List"
 				shortcut={["cmd", "shift", "7"]}
+				active={!!active?.orderedList}
 			>
 				<NumberList />
 			</ToolbarButton>
