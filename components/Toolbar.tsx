@@ -36,15 +36,21 @@ interface ActiveState {
 interface ToolbarProps {
 	viewRef: RefObject<EditorView | null>;
 	active?: ActiveState;
+	readOnly?: boolean;
 }
 
-export default function Toolbar({ viewRef, active }: ToolbarProps) {
+export default function Toolbar({
+	viewRef,
+	active,
+	readOnly = false,
+}: ToolbarProps) {
 	const [isLinkMenuOpen, setIsLinkMenuOpen] = useState(false);
 	const [hrefValue, setHrefValue] = useState("");
 	const hrefInputRef = useRef<HTMLInputElement | null>(null);
 
 	useEffect(() => {
 		function onOpenLink() {
+			if (readOnly) return;
 			setHrefValue("");
 			setIsLinkMenuOpen(true);
 		}
@@ -59,7 +65,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 				);
 			}
 		};
-	}, []);
+	}, [readOnly]);
 
 	useEffect(() => {
 		if (isLinkMenuOpen) {
@@ -101,6 +107,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 	);
 
 	function toggleHeading(level: 1 | 2) {
+		if (readOnly) return;
 		const view = viewRef.current;
 		if (!view) return;
 		const { schema } = view.state;
@@ -115,6 +122,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 
 	function toggleMarkType(markName: string) {
 		return () => {
+			if (readOnly) return;
 			const view = viewRef.current;
 			if (!view) return;
 			const mark =
@@ -132,6 +140,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 	const toggleUnderline = toggleMarkType("underline");
 
 	function applyLink(href: string) {
+		if (readOnly) return;
 		const view = viewRef.current;
 		if (!view) return;
 		const { state, dispatch } = view;
@@ -153,6 +162,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 	}
 
 	function removeLink() {
+		if (readOnly) return;
 		const view = viewRef.current;
 		if (!view) return;
 		const { state, dispatch } = view;
@@ -169,6 +179,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 	}
 
 	function onLinkButtonClick() {
+		if (readOnly) return;
 		const view = viewRef.current;
 		if (!view) return;
 		const { state } = view;
@@ -196,6 +207,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 
 	function toggleListType(listType: "bullet_list" | "ordered_list") {
 		return () => {
+			if (readOnly) return;
 			const view = viewRef.current;
 			if (!view) return;
 			const { schema } = view.state;
@@ -235,6 +247,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 				tooltip="Bold"
 				shortcut={["cmd", "b"]}
 				active={!!active?.strong}
+				disabled={readOnly}
 			>
 				<Bold />
 			</ToolbarButton>
@@ -243,6 +256,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 				tooltip="Italic"
 				shortcut={["cmd", "i"]}
 				active={!!active?.em}
+				disabled={readOnly}
 			>
 				<Italic />
 			</ToolbarButton>
@@ -251,6 +265,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 				tooltip="Underline"
 				shortcut={["cmd", "u"]}
 				active={!!active?.underline}
+				disabled={readOnly}
 			>
 				<Underline />
 			</ToolbarButton>
@@ -260,6 +275,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 				tooltip="Heading 1"
 				shortcut={["cmd", "opt", "1"]}
 				active={!!active?.heading1}
+				disabled={readOnly}
 			>
 				<Heading variant="h1" />
 			</ToolbarButton>
@@ -268,6 +284,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 				tooltip="Heading 2"
 				shortcut={["cmd", "opt", "2"]}
 				active={!!active?.heading2}
+				disabled={readOnly}
 			>
 				<Heading variant="h2" />
 			</ToolbarButton>
@@ -275,6 +292,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 			<DropdownMenu
 				open={isLinkMenuOpen}
 				onOpenChange={(open) => {
+					if (readOnly) return;
 					setIsLinkMenuOpen(open);
 					if (!open) {
 						const v = viewRef.current;
@@ -289,6 +307,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 							tooltip="Link"
 							shortcut={["cmd", "k"]}
 							active={!!active?.link}
+							disabled={readOnly}
 						>
 							<Link />
 						</ToolbarButton>
@@ -342,6 +361,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 				tooltip="Bullet List"
 				shortcut={["cmd", "shift", "8"]}
 				active={!!active?.bulletList}
+				disabled={readOnly}
 			>
 				<BulletList />
 			</ToolbarButton>
@@ -350,6 +370,7 @@ export default function Toolbar({ viewRef, active }: ToolbarProps) {
 				tooltip="Ordered List"
 				shortcut={["cmd", "shift", "7"]}
 				active={!!active?.orderedList}
+				disabled={readOnly}
 			>
 				<NumberList />
 			</ToolbarButton>

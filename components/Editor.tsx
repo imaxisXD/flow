@@ -44,6 +44,7 @@ interface EditorProps {
 	viewRef?: RefObject<EditorView | null>;
 	onActiveChange?: (active: ActiveState) => void;
 	onWordCountChange?: (count: number) => void;
+	readOnly?: boolean;
 }
 
 function buildSchema(): Schema {
@@ -106,6 +107,7 @@ function placeholderPlugin(text: string) {
 function createEditor(
 	mountEl: HTMLElement,
 	onStateUpdate: (state: EditorState) => void,
+	isReadOnly: boolean,
 ): { view: EditorView } {
 	const schema = buildSchema();
 
@@ -287,7 +289,7 @@ function createEditor(
 							const tr = view.state.tr.replaceSelection(slice).scrollIntoView();
 							view.dispatch(tr);
 							return true;
-						} catch (_err) {
+						} catch {
 							return false;
 						}
 					},
@@ -299,6 +301,7 @@ function createEditor(
 	let view: EditorView;
 	view = new EditorView(mountEl, {
 		state,
+		editable: () => !isReadOnly,
 		dispatchTransaction(tr) {
 			const newState = view.state.apply(tr);
 			view.updateState(newState);
@@ -313,12 +316,14 @@ export const Editor = ({
 	viewRef: externalViewRef,
 	onActiveChange,
 	onWordCountChange,
+	readOnly = false,
 }: EditorProps) => {
 	const editorContainerRef = useRef<HTMLDivElement | null>(null);
 	const pmViewRef = useRef<EditorView | null>(null);
 	const activeCallbackRef = useRef(onActiveChange);
 	const wordCountCallbackRef = useRef(onWordCountChange);
 	const externalRefRef = useRef(externalViewRef);
+	const readOnlyRef = useRef(readOnly);
 
 	useEffect(() => {
 		activeCallbackRef.current = onActiveChange;
@@ -329,53 +334,61 @@ export const Editor = ({
 	useEffect(() => {
 		externalRefRef.current = externalViewRef;
 	}, [externalViewRef]);
+	useEffect(() => {
+		readOnlyRef.current = readOnly;
+	}, [readOnly]);
 
 	useEffect(() => {
 		if (!editorContainerRef.current) return;
-		const { view } = createEditor(editorContainerRef.current, (state) => {
-			const text = state.doc.textBetween(0, state.doc.content.size, " ", " ");
-			const wordCount = text.trim().length
-				? text.trim().split(/\s+/).length
-				: 0;
-			if (wordCountCallbackRef.current) wordCountCallbackRef.current(wordCount);
+		const { view } = createEditor(
+			editorContainerRef.current,
+			(state) => {
+				const text = state.doc.textBetween(0, state.doc.content.size, " ", " ");
+				const wordCount = text.trim().length
+					? text.trim().split(/\s+/).length
+					: 0;
+				if (wordCountCallbackRef.current)
+					wordCountCallbackRef.current(wordCount);
 
-			// Compute active formatting state
-			const { schema, selection, storedMarks } = state;
-			const { from, to, empty, $from } = selection;
-			function isMarkActive(
-				markType: (typeof schema.marks)[keyof typeof schema.marks],
-			) {
-				if (!markType) return false;
-				if (empty) {
-					const marks = storedMarks || $from.marks();
-					return marks.some((m) => m.type === markType);
+				// Compute active formatting state
+				const { schema, selection, storedMarks } = state;
+				const { from, to, empty, $from } = selection;
+				function isMarkActive(
+					markType: (typeof schema.marks)[keyof typeof schema.marks],
+				) {
+					if (!markType) return false;
+					if (empty) {
+						const marks = storedMarks || $from.marks();
+						return marks.some((m) => m.type === markType);
+					}
+					return state.doc.rangeHasMark(from, to, markType);
 				}
-				return state.doc.rangeHasMark(from, to, markType);
-			}
-			function isNodeActiveInSelection(nodeTypeNames: string[]) {
-				for (let depth = $from.depth; depth > 0; depth--) {
-					const node = $from.node(depth);
-					if (nodeTypeNames.includes(node.type.name)) return true;
+				function isNodeActiveInSelection(nodeTypeNames: string[]) {
+					for (let depth = $from.depth; depth > 0; depth--) {
+						const node = $from.node(depth);
+						if (nodeTypeNames.includes(node.type.name)) return true;
+					}
+					return false;
 				}
-				return false;
-			}
-			const parent = $from.parent;
-			if (activeCallbackRef.current)
-				activeCallbackRef.current({
-					strong: isMarkActive(schema.marks.strong),
-					em: isMarkActive(schema.marks.em),
-					underline: schema.marks.underline
-						? isMarkActive(schema.marks.underline)
-						: false,
-					link: isMarkActive(schema.marks.link),
-					heading1:
-						parent.type === schema.nodes.heading && parent.attrs.level === 1,
-					heading2:
-						parent.type === schema.nodes.heading && parent.attrs.level === 2,
-					bulletList: isNodeActiveInSelection(["bullet_list"]),
-					orderedList: isNodeActiveInSelection(["ordered_list"]),
-				});
-		});
+				const parent = $from.parent;
+				if (activeCallbackRef.current)
+					activeCallbackRef.current({
+						strong: isMarkActive(schema.marks.strong),
+						em: isMarkActive(schema.marks.em),
+						underline: schema.marks.underline
+							? isMarkActive(schema.marks.underline)
+							: false,
+						link: isMarkActive(schema.marks.link),
+						heading1:
+							parent.type === schema.nodes.heading && parent.attrs.level === 1,
+						heading2:
+							parent.type === schema.nodes.heading && parent.attrs.level === 2,
+						bulletList: isNodeActiveInSelection(["bullet_list"]),
+						orderedList: isNodeActiveInSelection(["ordered_list"]),
+					});
+			},
+			readOnlyRef.current,
+		);
 		pmViewRef.current = view;
 		if (externalRefRef.current) externalRefRef.current.current = view;
 		// Load saved markdown from localStorage on first mount, if present
@@ -403,6 +416,13 @@ export const Editor = ({
 			if (externalRefRef.current) externalRefRef.current.current = null;
 		};
 	}, []);
+
+	// Toggle editable state without remounting the editor
+	useEffect(() => {
+		const view = pmViewRef.current;
+		if (!view) return;
+		view.setProps({ editable: () => !readOnly });
+	}, [readOnly]);
 
 	return <div ref={editorContainerRef} />;
 };
