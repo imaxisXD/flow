@@ -20,6 +20,7 @@ export const AiButton = ({
 	useHotkeys(
 		"mod+enter",
 		() => {
+			if (disabled) return;
 			if (isStreaming) {
 				if (onStop) onStop();
 			} else {

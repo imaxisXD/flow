@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader } from "lucide-react";
 import { defaultMarkdownSerializer } from "prosemirror-markdown";
 import type { EditorView } from "prosemirror-view";
 import type { RefObject } from "react";
@@ -48,6 +49,22 @@ export default function EditorSection({
 						onWordCountChange(count, md);
 					}}
 				/>
+
+				<div
+					className={`pointer-events-none absolute rounded-t-2xl py-2 bg-gradient-to-b from-pink-200 to-pink-300 inset-x-0 bottom-2 flex justify-center transition-all duration-300 ease-out transform ${readOnly ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}
+					aria-live="polite"
+					aria-atomic="true"
+				>
+					<div className="flex items-center gap-1 px-3 py-1 text-xs text-black/80">
+						<span className="relative flex items-center gap-0.5">
+							<Loader className="size-4 animate-spin" />
+						</span>
+						<span className="animate-pulse">
+							AI is writing, We have locked the editor will AI is acting like
+							Shakespeare
+						</span>
+					</div>
+				</div>
 			</div>
 			<div className="flex items-center justify-between text-xs text-black/40 px-1">
 				<div className="flex items-center gap-2">

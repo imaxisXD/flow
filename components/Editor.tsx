@@ -298,8 +298,7 @@ function createEditor(
 		],
 	});
 
-	let view: EditorView;
-	view = new EditorView(mountEl, {
+	const view: EditorView = new EditorView(mountEl, {
 		state,
 		editable: () => !isReadOnly,
 		dispatchTransaction(tr) {

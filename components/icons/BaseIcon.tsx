@@ -4,11 +4,7 @@ interface BaseIconProps {
 	className?: string;
 }
 
-export const BaseIcon = ({
-	size = "size-4",
-	children,
-	className,
-}: BaseIconProps) => {
+export const BaseIcon = ({ size = "size-4", children }: BaseIconProps) => {
 	return (
 		<svg
 			xmlns="http://www.w3.org/2000/svg"

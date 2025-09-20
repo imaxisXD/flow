@@ -14,7 +14,7 @@ export default function AgentPanel() {
 			</div>
 			<div className="flex-1 grid place-items-center">
 				<div className="flex flex-col items-center gap-4">
-					<Image src="/cook.png" alt="Cooks" width={180} height={180} />
+					<Image src="/cook.webp" alt="Cooks" width={180} height={180} />
 					<div className="text-black/70 text-sm font-medium">
 						I am still cooking this.
 					</div>

@@ -48,6 +48,16 @@ export function useStreamingCompletion(viewRef: RefObject<EditorView | null>) {
 				if (endPos > 1) {
 					const sepTr = state.tr.insertText("\n", endPos - 1);
 					view.dispatch(sepTr);
+
+					if (typeof window !== "undefined") {
+						requestAnimationFrame(() => {
+							const target = Math.max(
+								document.body.scrollHeight,
+								document.documentElement.scrollHeight,
+							);
+							window.scrollTo({ top: target, behavior: "smooth" });
+						});
+					}
 					appendStartPosRef.current = view.state.doc.content.size;
 				} else {
 					appendStartPosRef.current = endPos;
@@ -94,6 +104,16 @@ export function useStreamingCompletion(viewRef: RefObject<EditorView | null>) {
 					.scrollIntoView();
 				view.dispatch(tr);
 				view.focus();
+
+				if (typeof window !== "undefined") {
+					requestAnimationFrame(() => {
+						const target = Math.max(
+							document.body.scrollHeight,
+							document.documentElement.scrollHeight,
+						);
+						window.scrollTo({ top: target, behavior: "smooth" });
+					});
+				}
 			} catch (_err) {
 				console.log("Markdown parsing failed, keeping plain text", _err);
 			}
