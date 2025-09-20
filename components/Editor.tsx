@@ -378,6 +378,25 @@ export const Editor = ({
 		});
 		pmViewRef.current = view;
 		if (externalRefRef.current) externalRefRef.current.current = view;
+		// Load saved markdown from localStorage on first mount, if present
+		try {
+			if (typeof window !== "undefined") {
+				const stored = window.localStorage.getItem("flow-doc") || "";
+				if (stored.trim().length > 0) {
+					const mdParser = new MarkdownParser(
+						view.state.schema,
+						defaultMarkdownParser.tokenizer,
+						defaultMarkdownParser.tokens,
+					);
+					const mdDoc = mdParser.parse(stored);
+					const slice = new Slice(mdDoc.content, 0, 0);
+					const tr = view.state.tr
+						.replaceRange(0, view.state.doc.content.size, slice)
+						.scrollIntoView();
+					view.dispatch(tr);
+				}
+			}
+		} catch {}
 		return () => {
 			view.destroy();
 			pmViewRef.current = null;

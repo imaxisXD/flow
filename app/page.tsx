@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { useMachine } from "@xstate/react";
 import {
 	defaultMarkdownParser,
 	defaultMarkdownSerializer,
@@ -12,7 +13,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AiButton } from "@/components/AiButton";
 import { Editor } from "@/components/Editor";
 import { Cpu, Fire } from "@/components/icons";
+import SaveStatusBadge from "@/components/SaveStatusBadge";
 import Toolbar from "@/components/Toolbar";
+import { autosaveMachine } from "@/machines/autosave-machine";
 
 export default function Home() {
 	const viewRef = useRef<EditorView | null>(null);
@@ -20,6 +23,7 @@ export default function Home() {
 	const lastInsertedLenRef = useRef<number>(0);
 	const streamedMarkdownRef = useRef<string>("");
 	const separatorAddedRef = useRef<boolean>(false);
+	const lastContentRef = useRef<string>("");
 
 	const [toolbarActive, setToolbarActive] = useState({
 		strong: false,
@@ -35,22 +39,7 @@ export default function Home() {
 
 	const { messages, sendMessage, stop, status } = useChat();
 
-	const stripLeadingWhitespace = useCallback(
-		(s: string) => s.replace(/^[\s\u200B\uFEFF]+/, ""),
-		[],
-	);
-	const stripContinuationLabel = useCallback(
-		(s: string) => s.replace(/^Continuation\s*[:-]?\s*/i, ""),
-		[],
-	);
-	const sanitizeInitialChunk = useCallback(
-		(s: string) => stripContinuationLabel(stripLeadingWhitespace(s)),
-		[stripContinuationLabel, stripLeadingWhitespace],
-	);
-	const sanitizeFullMarkdown = useCallback(
-		(s: string) => stripContinuationLabel(stripLeadingWhitespace(s)).trimEnd(),
-		[stripContinuationLabel, stripLeadingWhitespace],
-	);
+	const [saveState, saveSend] = useMachine(autosaveMachine);
 
 	useEffect(() => {
 		if (status !== "streaming") return;
@@ -72,19 +61,15 @@ export default function Home() {
 
 		if (!fullText || fullText.length <= lastInsertedLenRef.current) return;
 
-		const rawDelta = fullText.slice(lastInsertedLenRef.current);
-		const isFirstChunk = lastInsertedLenRef.current === 0;
-		const delta = isFirstChunk ? sanitizeInitialChunk(rawDelta) : rawDelta;
+		const delta = fullText.slice(lastInsertedLenRef.current);
 
 		streamedMarkdownRef.current = fullText;
 		lastInsertedLenRef.current = fullText.length;
 
 		try {
-			// Get the current state and create a transaction
 			const { state } = view;
 			const { doc } = state;
-
-			// On first content insertion, ensure a single-space separator only if needed (no blank line)
+			// Insert a newline if needed
 			if (!separatorAddedRef.current && delta.length > 0) {
 				const endPos = doc.content.size;
 				if (endPos > 1) {
@@ -96,31 +81,10 @@ export default function Home() {
 				}
 				separatorAddedRef.current = true;
 			}
-
-			// Get updated state after potential separator insertion
-
-			// Check if we need to add a paragraph at the end
-			// if (
-			// 	endPos === 0 ||
-			// 	!currentState.doc.resolve(endPos).parent.isTextblock
-			// ) {
-			// 	// Add a paragraph if the document is empty or doesn't end with a text block
-			// 	const paragraph = schema.nodes.paragraph.create();
-			// 	const insertTr = currentState.tr.insert(endPos, paragraph);
-			// 	view.dispatch(insertTr);
-			// 	// After dispatching, get the updated state
-			// 	const updatedEndPos = view.state.doc.content.size;
-			// 	const textTr = view.state.tr.insertText(delta, updatedEndPos - 1);
-			// 	view.dispatch(textTr);
-			// } else {
-			// 	// Insert text at the end
-			// 	const insertTr = currentState.tr.insertText(delta, endPos);
-			// 	view.dispatch(insertTr);
-			// }
 		} catch (error) {
 			console.error("Error inserting text:", error);
 		}
-	}, [messages, status, sanitizeInitialChunk]);
+	}, [messages, status]);
 
 	const finalizeStreamingIntoEditor = useCallback(() => {
 		const view = viewRef.current;
@@ -144,7 +108,7 @@ export default function Home() {
 		) {
 			const start = appendStartPosRef.current;
 			const end = view.state.doc.content.size;
-			const markdown = sanitizeFullMarkdown(streamedMarkdownRef.current);
+			const markdown = streamedMarkdownRef.current;
 
 			try {
 				const mdParser = new MarkdownParser(
@@ -169,7 +133,7 @@ export default function Home() {
 		lastInsertedLenRef.current = 0;
 		streamedMarkdownRef.current = "";
 		separatorAddedRef.current = false;
-	}, [sanitizeFullMarkdown]);
+	}, []);
 
 	// Track previous status to detect transitions
 	const prevStatusRef = useRef(status);
@@ -217,24 +181,17 @@ export default function Home() {
 		if (typeof stop === "function") stop();
 		finalizeStreamingIntoEditor();
 	};
-	console.log("status", status);
+
 	return (
 		<div className="min-h-screen w-full flex bg-white">
-			{/* Left editor area */}
 			<div className="flex flex-col w-3/4">
-				{/* Top bar */}
 				<div className="h-14 flex items-center justify-between px-24 w-full">
 					<div className="flex items-center justify-center gap-6">
 						<h1 className="text-lg text-pink-700 font-bold w-fit flex justify-center items-center gap-0.5">
 							<Fire size="size-6" />
 							Flow Doc
 						</h1>
-						<span className="text-xs border border-emerald-400 text-green-500 rounded-full px-3 py-0.5">
-							Saved
-						</span>
-						<span className="text-xs border border-amber-400 text-amber-600 rounded-full px-3 py-0.5">
-							Saving
-						</span>
+						<SaveStatusBadge saveState={saveState} />
 					</div>
 					<div className="flex items-center w-fit">
 						<AiButton
@@ -246,16 +203,26 @@ export default function Home() {
 					</div>
 				</div>
 
-				{/* Editor canvas */}
 				<div className="flex flex-col mx-auto w-[80%] gap-2 h-full py-2">
 					<div className="relative flex-grow">
 						<Editor
 							viewRef={viewRef}
 							onActiveChange={setToolbarActive}
-							onWordCountChange={setWordCount}
+							onWordCountChange={(count) => {
+								setWordCount(count);
+								const view = viewRef.current;
+								if (view) {
+									const md = defaultMarkdownSerializer.serialize(
+										view.state.doc,
+									);
+									if (md !== lastContentRef.current) {
+										lastContentRef.current = md;
+										saveSend({ type: "CHANGE", content: md });
+									}
+								}
+							}}
 						/>
 					</div>
-					{/* Bottom editor toolbar and meta */}
 					<div className="flex items-center justify-between text-xs text-black/40 px-1">
 						<div className="flex items-center gap-2">
 							<Toolbar viewRef={viewRef} active={toolbarActive} />
